@@ -1,79 +1,69 @@
 """
-Data cleaning script.
-Read HTML files from data/raw/ and save clean CSV/JSON to data/processed/.
+Data Cleaning Script.
+Processes the Kaggle CSV and normalizes columns for analysis.
+- Renames and coerces numeric fields
+- Estimates like_count from engagement rate when likes are absent
 """
 
 import pandas as pd
-from bs4 import BeautifulSoup
 import os
-import re
+
 
 def clean_data():
-    raw_path = os.path.join("data", "raw", "raw_tiktok_data.html")
-    
+    raw_path = os.path.join("data", "raw", "raw_tiktok_trends.csv")
+
     if not os.path.exists(raw_path):
-        print("Error: Raw data file not found. Run get_data.py first!")
+        print("❌ Run get_data.py first!")
         return
 
-    print(f"Reading HTML from {raw_path}...")
-    with open(raw_path, "r", encoding="utf-8") as f:
-        soup = BeautifulSoup(f, "html.parser")
+    print("🧹 Loading dataset...")
 
-    trends = []
-    
-    # Find the table containing the trends data
-    table = soup.find("table")
-    
-    if not table:
-        print("Error: Could not find table in HTML. The page structure may have changed.")
-        return
-    
-    # Extract data from table rows (skip header row if present)
-    rows = table.find_all("tr")
-    
-    for row in rows:
-        cells = row.find_all("td")
-        
-        # Each row should have 3 columns: rank, trend_name, growth_percent
-        if len(cells) >= 3:
-            rank = cells[0].get_text(strip=True)
-            trend_name = cells[1].get_text(strip=True)
-            growth_percent = cells[2].get_text(strip=True)
-            
-            trends.append({
-                "rank": rank,
-                "trend_name": trend_name,
-                "growth_percent": growth_percent
-            })
+    try:
+        df = pd.read_csv(raw_path, on_bad_lines="skip")
+    except Exception:
+        df = pd.read_csv(raw_path)
 
-    # Create DataFrame
-    df = pd.DataFrame(trends)
-    
-    if df.empty:
-        print("Warning: No trends data extracted. Check the HTML structure.")
-        return
-    
-    # Basic Cleaning
-    # Convert rank to numeric
-    df['rank'] = pd.to_numeric(df['rank'], errors='coerce')
-    
-    # Clean growth_percent: remove commas and % sign, convert to numeric
-    df['growth_numeric'] = df['growth_percent'].str.replace(',', '').str.replace('%', '')
-    df['growth_numeric'] = pd.to_numeric(df['growth_numeric'], errors='coerce')
-    
-    # Sort by rank to ensure proper ordering
-    df = df.sort_values('rank').reset_index(drop=True)
+    print(f"   Raw shape: {df.shape}")
 
-    # Save to CSV
-    out_path = os.path.join("data", "processed", "cleaned_tiktok_data.csv")
-    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    # Expected Kaggle columns: ['country', 'platform', 'year_month', 'n_videos', 'views', 'avg_er', 'avg_velocity', 'trend_label']
+    # Normalize column names for downstream analysis
+    rename_map = {
+        "views": "view_count",
+        "avg_er": "engagement_rate",
+        "avg_velocity": "velocity",
+    }
+    df = df.rename(columns=rename_map)
+
+    # Coerce numeric columns
+    numeric_cols = ["view_count", "engagement_rate", "velocity", "n_videos"]
+    for col in numeric_cols:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    # Drop rows where view_count or engagement_rate is missing
+    df.dropna(subset=["view_count", "engagement_rate"], inplace=True)
+
+    # Remove zero or negative views
+    df = df[df["view_count"] > 0]
+
+    # If like_count is not present, estimate likes from engagement_rate (assumed fractional)
+    if "like_count" not in df.columns:
+        df["like_count"] = df["view_count"] * df["engagement_rate"]
+
+    # Drop rows with missing like_count after estimation
+    df.dropna(subset=["like_count"], inplace=True)
+
+    # Save processed data
+    out_dir = os.path.join("data", "processed")
+    os.makedirs(out_dir, exist_ok=True)
+    out_path = os.path.join(out_dir, "cleaned_tiktok_trends.csv")
+
     df.to_csv(out_path, index=False)
-    
-    print(f"✓ Successfully cleaned data!")
-    print(f"  - Found {len(df)} TikTok trends")
-    print(f"  - Saved to {out_path}")
-    print(f"\nFirst 5 trends:")
-    print(df.head().to_string(index=False))
+
+    print("✅ Cleaning complete!")
+    print(f"   Final Dataset Size: {len(df)} rows")
+    print(f"   Saved to: {out_path}")
+
 
 if __name__ == "__main__":
     clean_data()

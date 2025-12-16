@@ -2,24 +2,23 @@
 
 ## Team Information
 
-**Project Name:** TikTok Trends Analysis: Identifying Exploding Topics on TikTok
+**Project Name:** TikTok Trends Analysis: Virality and Engagement Patterns in Short-Form Video
 
 **Team Members:**
-- Wenjing Huang - whuang08@usc.edu - GitHub: [your_github_username] - USC ID: [your_usc_id]
+- Wenjing Huang - whuang08@usc.edu - GitHub: jocelynnnwj - USC ID: [3860016877]
 
 *Note: This is a single-person project.*
 
 ## Project Description
 
-This project analyzes trending topics on TikTok by scraping data from Exploding Topics, a platform that tracks emerging trends. The goal is to identify the fastest-growing TikTok trends, understand their growth patterns, and visualize insights about what topics are currently exploding on the platform.
+This project performs an exploratory analysis of short‑form video performance using the Kaggle dataset **"YouTube Shorts and TikTok Trends 2025"**. The goal is to understand how view counts and like counts relate to each other and to summarize engagement behavior across thousands of viral clips.
 
-**Research Question:** What are the fastest-growing TikTok trends, and what patterns can we identify in their growth rates?
+**Research Question:** What does the relationship between views and likes look like for highly viewed short‑form videos, and what is the typical engagement rate across the dataset?
 
-The project follows a complete data science pipeline:
-1. **Data Collection**: Web scraping TikTok trends data from Exploding Topics
-2. **Data Cleaning**: Extracting structured data from HTML and converting to CSV format
-3. **Data Analysis**: Statistical analysis of growth rates and trend categorization
-4. **Visualization**: Creating charts and graphs to communicate findings
+The project follows a compact but complete data science pipeline:
+1. **Data Collection**: Downloading the Kaggle dataset using the Kaggle API (via `kagglehub`)
+2. **Data Cleaning**: Normalizing column names, coercing numeric fields, filtering invalid rows, and constructing a `like_count` column when necessary
+3. **Data Analysis & Visualization**: Summarizing engagement statistics and generating visualizations for virality and correlations between numeric metrics
 
 ## Prerequisites
 
@@ -52,19 +51,34 @@ Once your virtual environment is activated, install all required dependencies:
 pip install -r requirements.txt
 ```
 
-This will install the following packages:
-- `beautifulsoup4` - For parsing HTML content
-- `requests` - For making HTTP requests to scrape web data
+This will install the following packages (key ones listed):
+- `kagglehub` - For downloading datasets from Kaggle using the Kaggle API
 - `pandas` - For data manipulation and analysis
 - `matplotlib` - For creating visualizations
+- `seaborn` - For enhanced visualization styling
+- `requests`, `beautifulsoup4` - Included for potential future web requests / parsing
 
 ## How to Run the Project
 
-The project consists of three main scripts that should be run in sequence:
+The project consists of three main scripts that should be run in sequence.
 
 ### Step 1: Data Collection (`get_data.py`)
 
-This script scrapes TikTok trends data from Exploding Topics and saves the raw HTML file.
+This script downloads the **YouTube Shorts and TikTok Trends 2025** dataset from Kaggle.
+
+Before running it, set your Kaggle credentials in the environment:
+
+```bash
+export KAGGLE_USERNAME="your_username"
+export KAGGLE_API_TOKEN="your_token"
+```
+
+On Windows (PowerShell), you can use:
+
+```powershell
+$env:KAGGLE_USERNAME="your_username"
+$env:KAGGLE_API_TOKEN="your_token"
+```
 
 **Command:**
 ```bash
@@ -72,19 +86,22 @@ python src/get_data.py
 ```
 
 **What it does:**
-- Makes an HTTP GET request to `https://explodingtopics.com/blog/tiktok-trends`
-- Uses browser-like headers to avoid being blocked
-- Saves the raw HTML content to `data/raw/raw_tiktok_data.html`
+- Authenticates with Kaggle using `KAGGLE_USERNAME` and `KAGGLE_API_TOKEN`
+- Downloads the dataset via `kagglehub.dataset_download`
+- Copies the main CSV file into `data/raw/` as `raw_tiktok_trends.csv`
 
-**Expected output:**
-```
-Scraping https://explodingtopics.com/blog/tiktok-trends...
-Success! Raw data saved to data/raw/raw_tiktok_data.html
+**Expected output (abridged):**
+
+```text
+🚀 Authenticating with Kaggle via environment variables...
+📥 Downloading 'YouTube Shorts and TikTok Trends 2025'...
+✅ Download complete! Cache path: ...
+📦 Moved data to project: data/raw/raw_tiktok_trends.csv
 ```
 
 ### Step 2: Data Cleaning (`clean_data.py`)
 
-This script processes the raw HTML file, extracts structured data from the trends table, and saves it as a cleaned CSV file.
+This script processes the raw CSV file from Kaggle and prepares a clean dataset for analysis.
 
 **Command:**
 ```bash
@@ -92,29 +109,28 @@ python src/clean_data.py
 ```
 
 **What it does:**
-- Reads the raw HTML file from `data/raw/raw_tiktok_data.html`
-- Parses the HTML using BeautifulSoup to locate the trends table
-- Extracts three columns: rank, trend name, and growth percentage
-- Cleans the data by converting growth percentages to numeric format
-- Saves the cleaned data to `data/processed/cleaned_tiktok_data.csv`
+- Loads `data/raw/raw_tiktok_trends.csv`
+- Renames key columns (e.g., `views` → `view_count`, `avg_er` → `engagement_rate`, `avg_velocity` → `velocity`)
+- Coerces numeric columns (`view_count`, `engagement_rate`, `velocity`, `n_videos`)
+- Drops rows with missing or invalid `view_count` / `engagement_rate`
+- Ensures strictly positive `view_count`
+- Creates a `like_count` column if it does not exist (estimated as `view_count * engagement_rate`)
+- Saves a single cleaned dataset:
+  - `data/processed/cleaned_tiktok_trends.csv`
 
-**Expected output:**
+**Expected output (abridged):**
+
+```text
+🧹 Loading dataset...
+   Raw shape: (N, 8)
+✅ Cleaning complete!
+   Final Dataset Size: M rows
+   Saved to: data/processed/cleaned_tiktok_trends.csv
 ```
-Reading HTML from data/raw/raw_tiktok_data.html...
-✓ Successfully cleaned data!
-  - Found 51 TikTok trends
-  - Saved to data/processed/cleaned_tiktok_data.csv
 
-First 5 trends:
- rank            trend_name growth_percent  growth_numeric
-  1.0           Roll On Oil        12,600%         12600.0
-  2.0 Keyboard Cleaning Gel        10,500%         10500.0
-  ...
-```
+### Step 3: Data Analysis and Visualization (`run_analysis.py` + `visualize_results.py`)
 
-### Step 3: Data Analysis and Visualization (`run_analysis.py`)
-
-This script performs statistical analysis on the cleaned data and generates visualizations and reports.
+This step reads the cleaned dataset, generates visualizations, and writes a concise text report.
 
 **Command:**
 ```bash
@@ -122,89 +138,95 @@ python src/run_analysis.py
 ```
 
 **What it does:**
-- Reads the cleaned CSV file from `data/processed/cleaned_tiktok_data.csv`
-- Calculates statistical summaries (mean, median, min, max growth rates)
-- Categorizes trends by growth rate (high, medium, low)
-- Generates three visualization files:
-  - `results/top_10_trends.png` - Horizontal bar chart of top 10 fastest-growing trends
-  - `results/growth_distribution.png` - Histogram showing distribution of growth rates
-  - `results/top_5_trends.png` - Vertical bar chart of top 5 trends
-- Creates a text report: `results/analysis_report.txt` with detailed statistics and findings
+- Reads `data/processed/cleaned_tiktok_trends.csv`
+- Uses `visualize_results.create_visualizations(df)` to generate:
+  - `results/virality_scatter.png` – log–log scatter of `view_count` vs `like_count`
+  - `results/correlation_heatmap.png` – correlation heatmap of numeric features
+- Computes summary engagement statistics and writes:
+  - `results/analysis_report.txt`
+  
+**Note:** The final comprehensive report (`results/final_report.pdf`) is a LaTeX-generated PDF document that provides a detailed analysis of the findings. This PDF is created separately and should be placed in the `results/` folder.
 
-**Expected output:**
-```
-Reading cleaned data from data/processed/cleaned_tiktok_data.csv...
+**Expected output (abridged):**
 
-📊 Analysis Summary:
-  - Total trends analyzed: 51
-  - Mean growth: 1904.6%
-  - Median growth: 1150.0%
-  - Max growth: 12600.0%
-  - Min growth: 734.0%
-✓ Saved: results/top_10_trends.png
-✓ Saved: results/growth_distribution.png
-✓ Saved: results/top_5_trends.png
-✓ Saved: results/analysis_report.txt
+```text
+📊 Loading processed data...
+   Loaded M rows.
+🎨 Generating Scatter Plot...
+🎨 Generating Correlation Heatmap...
+📝 Report saved to: results/analysis_report.txt
 
-✅ Analysis complete! All results saved to results/ directory.
+✅ Analysis Pipeline Complete!
 ```
 
 ## Project Structure
 
-```
-my_project/
-├── README.md                 # This file - project documentation
-├── requirements.txt          # Python package dependencies
+```text
+TikTok_Trends_Analysis/
+├── README.md                  # This file - project documentation
+├── requirements.txt           # Python package dependencies
+├── .gitignore                 # Git ignore file
+├── project_proposal.pdf       # Project proposal document
 ├── data/
-│   ├── raw/                 # Raw data files (HTML from web scraping)
-│   │   └── raw_tiktok_data.html
-│   └── processed/           # Cleaned and structured data (CSV files)
-│       └── cleaned_tiktok_data.csv
-├── src/                     # Source code
-│   ├── get_data.py         # Data collection script (web scraping)
-│   ├── clean_data.py       # Data cleaning and preprocessing script
-│   └── run_analysis.py     # Data analysis and visualization script
-└── results/                 # Final outputs (reports and visualizations)
-    ├── analysis_report.txt  # Text report with statistics
-    ├── top_10_trends.png   # Visualization: Top 10 trends bar chart
-    ├── growth_distribution.png  # Visualization: Growth rate histogram
-    └── top_5_trends.png    # Visualization: Top 5 trends bar chart
+│   ├── raw/                   # Raw data files from Kaggle
+│   │   └── raw_tiktok_trends.csv
+│   └── processed/             # Cleaned and structured data (CSV files)
+│       └── cleaned_tiktok_trends.csv
+├── src/                       # Source code
+│   ├── get_data.py            # Data collection script (Kaggle download)
+│   ├── clean_data.py          # Data cleaning script for the Kaggle CSV
+│   ├── run_analysis.py        # Analysis + text report generation
+│   ├── visualize_results.py   # Visualization utilities (plots saved to results/)
+│   └── utils/                 # Utility package (placeholder for shared helpers)
+│       └── __init__.py
+└── results/                   # Final outputs (reports and visualizations)
+    ├── analysis_report.txt    # Engagement summary report
+    ├── final_report.pdf       # Final analysis report (LaTeX/PDF)
+    ├── correlation_heatmap.png
+    └── virality_scatter.png
 ```
 
-## Data Sources
+## Data Source
 
-**Primary Data Source:**
-- **Website**: Exploding Topics (https://explodingtopics.com/blog/tiktok-trends)
-- **Data Type**: HTML table containing TikTok trends with growth percentages
-- **Collection Method**: Web scraping using Python `requests` library
-- **Number of Data Samples**: 51 TikTok trends
+**Primary Dataset:**
 
-## Key Findings
+1. **YouTube Shorts and TikTok Trends 2025 (Kaggle)**
+   - **Host**: Kaggle
+   - **Access Method**: Kaggle API via `kagglehub`
+   - **Data Type**: CSV file with aggregated metrics for trending short‑form videos
+   - **Example Fields**: `country`, `platform`, `year_month`, `n_videos`, `views`, `avg_er`, `avg_velocity`, `trend_label`
 
-Based on the analysis of 51 TikTok trends:
-- **Top Trend**: Roll On Oil with 12,600% growth
-- **Average Growth Rate**: 1,904.6%
-- **Growth Distribution**: 
-  - High growth (≥5,000%): 4 trends (7.8%)
-  - Medium growth (1,000-5,000%): 26 trends (51.0%)
-  - Low growth (<1,000%): 20 trends (39.2%)
+During cleaning, these are normalized into analysis‑friendly fields such as `view_count`, `engagement_rate`, `velocity`, `n_videos`, and `like_count`.
 
 ## Troubleshooting
 
-**Issue**: `ModuleNotFoundError` when running scripts
-- **Solution**: Make sure you've activated your virtual environment and installed all requirements with `pip install -r requirements.txt`
+**Issue**: `ModuleNotFoundError` when running scripts  
+- **Solution**: Make sure you've activated your virtual environment and installed all requirements with `pip install -r requirements.txt`.
 
-**Issue**: `FileNotFoundError` when running `clean_data.py` or `run_analysis.py`
+**Issue**: `FileNotFoundError` when running `clean_data.py` or `run_analysis.py`  
 - **Solution**: Make sure you've run the previous scripts in sequence. `clean_data.py` requires `get_data.py` to run first, and `run_analysis.py` requires `clean_data.py` to run first.
 
-**Issue**: Scripts run but produce no output
-- **Solution**: Check that the website structure hasn't changed. The scraping script may need to be updated if Exploding Topics changes their HTML structure.
+**Issue**: Kaggle credentials error in `get_data.py`  
+- **Solution**: Confirm that `KAGGLE_USERNAME` and `KAGGLE_API_TOKEN` (or `KAGGLE_KEY`) are set in your environment and match your Kaggle account settings.
+
+**Issue**: Warning about `~/.matplotlib` not being writable when running `run_analysis.py`  
+- **Solution**: Set the `MPLCONFIGDIR` environment variable to a writable directory, for example:
+
+```bash
+export MPLCONFIGDIR=/tmp/mplcache
+```
+
+**Issue**: `ModuleNotFoundError: No module named 'seaborn'`  
+- **Solution**: Install Seaborn with `pip install seaborn`.
 
 ## Notes
 
-- The `data/` directory may be ignored by git to avoid uploading large files. Make sure to run `get_data.py` before running other scripts.
-- All visualizations are saved as PNG files with 300 DPI resolution for high-quality output.
-- The analysis report includes detailed statistics and can be found in `results/analysis_report.txt`.
+- The project uses a single Kaggle dataset as its primary source.
+- Data cleaning focuses on ensuring numeric correctness and constructing a consistent `like_count` metric.
+- Visualizations are saved as PNG files with 300 DPI resolution for high-quality output.
+- The analysis report (`analysis_report.txt`) includes key descriptive statistics and an approximate engagement rate.
+- The project proposal (`project_proposal.pdf`) outlines the initial research plan and methodology.
+- The final report (`results/final_report.pdf`) provides a comprehensive LaTeX-formatted analysis of the findings.
 
 ## License
 

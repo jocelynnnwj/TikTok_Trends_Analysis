@@ -1,5 +1,6 @@
-beautifulsoup4
-requests
+kagglehub
 pandas
 matplotlib
-
+seaborn
+requests
+beautifulsoup4
