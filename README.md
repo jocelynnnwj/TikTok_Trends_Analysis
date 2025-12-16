@@ -1,13 +1,6 @@
 # TikTok Trends Analysis Project
 
-## 2. Team Information
-* **Project Name:** TikTok Trends Analysis
-* **Team Member:** Wenjing Huang
-* **Email:** whuang08@usc.edu
-* **USC ID:** 3860016877
-* **GitHub:** jocelynnnwj
-
----
+**Wenjing Huang** | whuang08@usc.edu | USC ID: 3860016877
 
 ## Project Description
 
